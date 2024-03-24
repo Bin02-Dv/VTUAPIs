@@ -4,5 +4,4 @@ from .models import AuthApiModel, APIKey
 
 # Register your models here.
 
-admin.site.register(AuthApiModel)
 admin.site.register(APIKey)

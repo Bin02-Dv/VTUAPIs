@@ -95,3 +95,30 @@ class AllUserView(APIView):
         serializer = AuthApiModelSerializer(users, many=True)
         return Response(serializer.data)
         # return JsonResponse({"users": serializer.data})
+
+
+import requests
+
+class AirtimeTopUpAPIView(APIView):
+    def post(self, request):
+        # Extract data from request
+        phone_number = request.data.get('mobile_number')
+        amount = request.data.get('amount')
+
+        # Make HTTP request to VTU API endpoint
+        url = 'https://www.gladtidingsdata.com/api/topup/'
+        headers = {'Authorization': 'Token 8224e7a261e7eef4af78f922b8f8e63a6f6aecf4', 'Content-Type': 'application/json'}
+        data = {
+            "network": 1,
+            "amount": amount,
+            "mobile_number": phone_number,
+            "Ported_number": True,
+            "airtime_type": "VTU"
+        }
+        response = requests.post(url, headers=headers, json=data)
+
+        # Check response status and return appropriate response
+        if response.status_code == 200:
+            return Response({'message': 'Airtime top-up successful'}, status=200)
+        else:
+            return Response({'error': 'Failed to top up airtime'}, status=response.status_code)
