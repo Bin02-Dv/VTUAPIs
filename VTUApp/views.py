@@ -6,6 +6,7 @@ from .models import AuthApiModel, APIKey
 import jwt, datetime
 from django.shortcuts import render, redirect
 from rest_framework.permissions import IsAuthenticated
+import requests
 
 # Create your views here.
 
@@ -96,8 +97,6 @@ class AllUserView(APIView):
         return Response(serializer.data)
         # return JsonResponse({"users": serializer.data})
 
-
-import requests
 
 class AirtimeTopUpAPIView(APIView):
     def post(self, request):
