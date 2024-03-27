@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import SignUpView, LoginView, UserView, LogoutView, AllUserView, GenerateAPIKeyView, AirtimeTopUpAPIView
+from .views import SignUpView, LoginView, UserView, LogoutView, AllUserView, GenerateAPIKeyView, AirtimeTopUpAPIView, DataTopUpAPIView
 
 urlpatterns = [
     path('api-keys/', GenerateAPIKeyView.as_view(), name='generate_api_key'),
@@ -9,6 +9,8 @@ urlpatterns = [
     path('user/', UserView.as_view()),
     path('', AllUserView.as_view()),
 
-    # Airtime Top Up
+    # Buy Airtime
     path('vtu/airtime', AirtimeTopUpAPIView.as_view()),
+    # Buy Data
+    path('vtu/data', DataTopUpAPIView.as_view()),
 ]

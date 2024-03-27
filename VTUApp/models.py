@@ -23,3 +23,6 @@ class APIKey(models.Model):
 
     def __str__(self):
         return str(self.key)
+
+class Transaction(models.Model):
+    pass

@@ -104,6 +104,7 @@ class AirtimeTopUpAPIView(APIView):
         # Extract data from request
         phone_number = request.data.get('mobile_number')
         amount = request.data.get('amount')
+        network = request.data.get('network')
 
         # Make HTTP request to VTU API endpoint
         url = 'https://www.gladtidingsdata.com/api/topup/'
@@ -122,3 +123,28 @@ class AirtimeTopUpAPIView(APIView):
             return Response({'message': 'Airtime top-up successful'}, status=200)
         else:
             return Response({'error': 'Failed to top up airtime'}, status=response.status_code)
+        
+class DataTopUpAPIView(APIView):
+    def post(self, request):
+        # Extract data from request
+        phone_number = request.data.get('mobile_number')
+        network = request.data.get('network')
+        plan_id = request.data.get('plan')
+
+        # Make HTTP request to VTU API endpoint
+        url = 'https://www.gladtidingsdata.com/api/data/'
+        headers = {'Authorization': 'Token 8224e7a261e7eef4af78f922b8f8e63a6f6aecf4', 'Content-Type': 'application/json'}
+        data = {
+            "network":network,
+            "mobile_number": phone_number,
+            "plan": plan_id,
+            "Ported_number":True,
+            # "payment_medium" : payment_medium
+        }
+        response = requests.post(url, headers=headers, json=data)
+
+        # Check response status and return appropriate response
+        if response.status_code == 200:
+            return Response({'message': 'Data was sent successful'}, status=200)
+        else:
+            return Response({'error': 'Failed to sent the Data!'}, status=response.status_code)
