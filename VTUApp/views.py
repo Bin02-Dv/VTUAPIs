@@ -110,7 +110,7 @@ class AirtimeTopUpAPIView(APIView):
         url = 'https://www.gladtidingsdata.com/api/topup/'
         headers = {'Authorization': 'Token 8224e7a261e7eef4af78f922b8f8e63a6f6aecf4', 'Content-Type': 'application/json'}
         data = {
-            "network": 1,
+            "network": network,
             "amount": amount,
             "mobile_number": phone_number,
             "Ported_number": True,
