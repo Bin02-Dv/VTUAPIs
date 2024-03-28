@@ -25,4 +25,11 @@ class APIKey(models.Model):
         return str(self.key)
 
 class Transaction(models.Model):
-    pass
+    user = models.ForeignKey(AuthApiModel, on_delete=models.CASCADE)
+    email_user = models.CharField(max_length=225)
+    service = models.CharField(max_length=225)
+    message = models.TextField(max_length=225)
+    status = models.CharField(max_length=225)
+
+    def __str__(self):
+        return self.user.email

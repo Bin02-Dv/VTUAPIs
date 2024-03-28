@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.exceptions import AuthenticationFailed
 from .serializers import AuthApiModelSerializer
-from .models import AuthApiModel, APIKey
+from .models import AuthApiModel, APIKey, Transaction
 import jwt, datetime
 from django.shortcuts import render, redirect
 from rest_framework.permissions import IsAuthenticated
@@ -100,6 +100,7 @@ class AllUserView(APIView):
 
 class AirtimeTopUpAPIView(APIView):
     def post(self, request):
+        user = AuthApiModel.objects.get(email=request.user.email)
         # Extract data from request
         phone_number = request.data.get('mobile_number')
         amount = request.data.get('amount')
@@ -119,12 +120,23 @@ class AirtimeTopUpAPIView(APIView):
 
         # Check response status and return appropriate response
         if response.status_code == 200:
-            return Response({'message': 'Airtime top-up successful'}, status=200)
+            new_transaction = Transaction.objects.create(
+                user=user, email_user=user.email, service=data['airtime_type'],
+                message=f'Airtime top-up to {phone_number} successful', status='Successful'
+            )
+            new_transaction.save()
+            return Response({'message': f'Airtime top-up to {phone_number} successful'}, status=200)
         else:
+            new_transaction = Transaction.objects.create(
+                user=user, email_user=user.email, service=data['airtime_type'],
+                message='Failed to top up airtime', status='Failed'
+            )
+            new_transaction.save()
             return Response({'error': 'Failed to top up airtime'}, status=response.status_code)
         
 class DataTopUpAPIView(APIView):
     def post(self, request):
+        user = AuthApiModel.objects.get(email=request.user.email)
         # Extract data from request
         phone_number = request.data.get('mobile_number')
         network = request.data.get('network')
@@ -144,6 +156,16 @@ class DataTopUpAPIView(APIView):
 
         # Check response status and return appropriate response
         if response.status_code == 200:
-            return Response({'message': 'Data was sent successful'}, status=200)
+            new_transaction = Transaction.objects.create(
+                user=user, email_user=user.email, service=data['plan'],
+                message=f'Data was sent to {phone_number} successful', status='Successful'
+            )
+            new_transaction.save()
+            return Response({'message': f'Data was sent to {phone_number} successful'}, status=200)
         else:
+            new_transaction = Transaction.objects.create(
+                user=user, email_user=user.email, service=data['plan'],
+                message='Failed to sent the Data!', status='Failed'
+            )
+            new_transaction.save()
             return Response({'error': 'Failed to sent the Data!'}, status=response.status_code)
