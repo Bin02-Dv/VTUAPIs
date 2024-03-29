@@ -1,12 +1,13 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.exceptions import AuthenticationFailed
-from .serializers import AuthApiModelSerializer
+from .serializers import AuthApiModelSerializer, TransactionModelSerializer
 from .models import AuthApiModel, APIKey, Transaction
 import jwt, datetime
 from django.shortcuts import render, redirect
 from rest_framework.permissions import IsAuthenticated
 import requests
+from django.contrib.auth import authenticate
 
 # Create your views here.
 
@@ -97,18 +98,37 @@ class AllUserView(APIView):
         return Response(serializer.data)
         # return JsonResponse({"users": serializer.data})
 
+class AllTransactions(APIView):
+
+    def get(self, request):
+        transactions = Transaction.objects.all()
+        serializer = TransactionModelSerializer(transactions, many=True)
+        return Response(serializer.data)
+
+
+from rest_framework.exceptions import AuthenticationFailed
+import requests
 
 class AirtimeTopUpAPIView(APIView):
     def post(self, request):
-        user = AuthApiModel.objects.get(email=request.user.email)
+        token = request.COOKIES.get('jwt')
+        
+        try:
+            payload = jwt.decode(token, 'secret', algorithms=['HS256'])
+        except jwt.ExpiredSignatureError:
+            raise AuthenticationFailed('User Unauthenticated!!')
+        
+        user = AuthApiModel.objects.filter(id=payload['id']).first()
         # Extract data from request
         phone_number = request.data.get('mobile_number')
         amount = request.data.get('amount')
         network = request.data.get('network')
 
-        # Make HTTP request to VTU API endpoint
         url = 'https://www.gladtidingsdata.com/api/topup/'
-        headers = {'Authorization': 'Token 8224e7a261e7eef4af78f922b8f8e63a6f6aecf4', 'Content-Type': 'application/json'}
+        headers = {
+            'Authorization': 'Token 8224e7a261e7eef4af78f922b8f8e63a6f6aecf4', 
+            'Content-Type': 'application/json'
+        }
         data = {
             "network": network,
             "amount": amount,
@@ -116,9 +136,19 @@ class AirtimeTopUpAPIView(APIView):
             "Ported_number": True,
             "airtime_type": "VTU"
         }
-        response = requests.post(url, headers=headers, json=data)
 
-        # Check response status and return appropriate response
+        try:
+            response = requests.post(url, headers=headers, json=data)
+            response.raise_for_status()  # Raise exception for HTTP errors
+        except requests.RequestException as e:
+            # Handle HTTP request errors
+            new_transaction = Transaction.objects.create(
+                user=user, email_user=user.email, service=data['airtime_type'],
+                message=f'Failed to top up airtime: {str(e)}', status='Failed'
+            )
+            new_transaction.save()
+            return Response({'error': f'Failed to top up airtime: {str(e)}'}, status=500)
+
         if response.status_code == 200:
             new_transaction = Transaction.objects.create(
                 user=user, email_user=user.email, service=data['airtime_type'],
@@ -136,36 +166,58 @@ class AirtimeTopUpAPIView(APIView):
         
 class DataTopUpAPIView(APIView):
     def post(self, request):
-        user = AuthApiModel.objects.get(email=request.user.email)
+        token = request.COOKIES.get('jwt')
+        
+        try:
+            payload = jwt.decode(token, 'secret', algorithms=['HS256'])
+        except jwt.ExpiredSignatureError:
+            raise AuthenticationFailed('User Unauthenticated!!')
+
+        user = AuthApiModel.objects.filter(id=payload['id']).first()
         # Extract data from request
         phone_number = request.data.get('mobile_number')
         network = request.data.get('network')
         plan_id = request.data.get('plan')
 
+        # Validate data
+        if not all([phone_number, network, plan_id]):
+            return Response({'error': 'Missing required data'}, status=400)
+
         # Make HTTP request to VTU API endpoint
         url = 'https://www.gladtidingsdata.com/api/data/'
-        headers = {'Authorization': 'Token 8224e7a261e7eef4af78f922b8f8e63a6f6aecf4', 'Content-Type': 'application/json'}
+        headers = {
+            'Authorization': 'Token 8224e7a261e7eef4af78f922b8f8e63a6f6aecf4',
+            'Content-Type': 'application/json'
+        }
         data = {
-            "network":network,
+            "network": network,
             "mobile_number": phone_number,
             "plan": plan_id,
-            "Ported_number":True,
-            # "payment_medium" : payment_medium
+            "Ported_number": True,
         }
-        response = requests.post(url, headers=headers, json=data)
 
-        # Check response status and return appropriate response
+        try:
+            response = requests.post(url, headers=headers, json=data)
+            response.raise_for_status()
+        except requests.RequestException as e:
+            new_transaction = Transaction.objects.create(
+                user=user, email_user=user.email, service=plan_id,
+                message=f'Failed to send the Data: {str(e)}', status='Failed'
+            )
+            new_transaction.save()
+            return Response({'error': f'Failed to send the Data: {str(e)}'}, status=500)
+
         if response.status_code == 200:
             new_transaction = Transaction.objects.create(
-                user=user, email_user=user.email, service=data['plan'],
-                message=f'Data was sent to {phone_number} successful', status='Successful'
+                user=user, email_user=user.email, service=plan_id,
+                message=f'Data was sent to {phone_number} successfully', status='Successful'
             )
             new_transaction.save()
-            return Response({'message': f'Data was sent to {phone_number} successful'}, status=200)
+            return Response({'message': f'Data was sent to {phone_number} successfully'}, status=200)
         else:
             new_transaction = Transaction.objects.create(
-                user=user, email_user=user.email, service=data['plan'],
-                message='Failed to sent the Data!', status='Failed'
+                user=user, email_user=user.email, service=plan_id,
+                message='Failed to send the Data!', status='Failed'
             )
             new_transaction.save()
-            return Response({'error': 'Failed to sent the Data!'}, status=response.status_code)
+            return Response({'error': 'Failed to send the Data!'}, status=response.status_code)

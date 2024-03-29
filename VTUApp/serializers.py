@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import AuthApiModel
+from .models import AuthApiModel, Transaction
 
 class AuthApiModelSerializer(serializers.ModelSerializer):
     class Meta:
@@ -16,3 +16,8 @@ class AuthApiModelSerializer(serializers.ModelSerializer):
             instance.set_password(password)
         instance.save()
         return instance
+
+class TransactionModelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Transaction
+        fields = ['id', 'email_user', 'service', 'message', 'status']
