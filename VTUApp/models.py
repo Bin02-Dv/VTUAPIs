@@ -9,9 +9,9 @@ class AuthApiModel(AbstractUser):
     email = models.CharField(max_length=225, unique=True)
     username = None
     password = models.CharField(max_length=225)
-    phone_number = models.CharField(max_length=225)
+    phone_number = models.CharField(max_length=225, unique=True)
 
-    USERNAME_FIELD = 'email'
+    USERNAME_FIELD = 'phone_number'
     REQUIRED_FIELDS = []
 
     def __str__(self):
