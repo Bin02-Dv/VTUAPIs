@@ -104,6 +104,21 @@ class AllTransactions(APIView):
         transactions = Transaction.objects.all()
         serializer = TransactionModelSerializer(transactions, many=True)
         return Response(serializer.data)
+    
+class UserTransactions(APIView):
+
+    def get(self, request):
+        token = request.COOKIES.get('jwt')
+        
+        try:
+            payload = jwt.decode(token, 'secret', algorithms=['HS256'])
+        except jwt.ExpiredSignatureError:
+            raise AuthenticationFailed('User Unauthenticated!!')
+        
+        user = AuthApiModel.objects.filter(id=payload['id']).first()
+        transactions = Transaction.objects.filter(user=user)
+        serializer = TransactionModelSerializer(transactions, many=True)
+        return Response(serializer.data)
 
 
 from rest_framework.exceptions import AuthenticationFailed
@@ -150,10 +165,10 @@ class AirtimeTopUpAPIView(APIView):
         if response.status_code == 200:
             new_transaction = Transaction.objects.create(
                 user=user, email_user=user.email, service="VTU",
-                message=f'Airtime top-up to {phone_number} successful', status='Successful'
+                message=f'Airtime top-up {amount} to {phone_number} successful', status='Successful'
             )
             new_transaction.save()
-            return Response({'message': f'Airtime top-up to {phone_number} successful'}, status=200)
+            return Response({'message': f'Airtime top-up {amount} to {phone_number} successful'}, status=200)
         else:
             new_transaction = Transaction.objects.create(
                 user=user, email_user=user.email, service="VTU",
